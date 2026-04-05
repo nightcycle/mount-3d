@@ -4,6 +4,7 @@
 -- Modules
 -- Types
 -- Constants
+local CONSTANTS = require(script.Parent.CONSTANTS)
 -- Variables
 -- References
 -- Private Functions
@@ -49,6 +50,12 @@ function Util.fillTriangle(
 		CFrame.fromMatrix((a + b) / 2, right, up, back) + normal * (-thickness / 2),
 		w2,
 		CFrame.fromMatrix((a + c) / 2, -right, up, -back) + normal * (-thickness / 2)
+end
+
+function Util.positionEq(a: Vector3, b: Vector3): boolean
+	return math.abs(a.X - b.X) <= CONSTANTS.FUZZY_EQ.LENGTH
+		and math.abs(a.Y - b.Y) <= CONSTANTS.FUZZY_EQ.LENGTH
+		and math.abs(a.Z - b.Z) <= CONSTANTS.FUZZY_EQ.LENGTH
 end
 
 return Util

@@ -36,6 +36,7 @@ export type FillResult = {
 	Instances: { Instance },
 	Parts: { [BasePart]: CFrame },
 }
+
 -- Constants
 local CONSTANTS = require(script.Parent.CONSTANTS)
 -- Variables
@@ -44,68 +45,111 @@ local CONSTANTS = require(script.Parent.CONSTANTS)
 -- Class
 local Mount = {}
 
-type TriangleMount = {
+export type TriangleMount = {
 	Type: "Triangle",
-	A: VertexPoint,
-	B: VertexPoint,
-	C: VertexPoint,
+	P1: VertexPoint,
+	P2: VertexPoint,
+	P3: VertexPoint,
 	Normal: Vector3,
 	Up: Vector3,
 }
+do
+	Mount.Triangle = {}
 
-Mount.Triangle = {}
-
-function Mount.Triangle.new(a: VertexPoint, b: VertexPoint, c: VertexPoint, normal: Vector3, up: Vector3): TriangleMount
-	local mount = {
-		Type = "Triangle" :: "Triangle",
-		A = a,
-		B = b,
-		C = c,
-		Normal = normal,
-		Up = up,
-	}
-	table.freeze(mount)
-	return mount
-end
-
-function Mount.Triangle.fill(mount: TriangleMount, fill: FillInfo, rng: Random?): FillResult
-	if fill.Type == "Surface" then
-		local a, aCF, b, bCF = Util.fillTriangle(
-			mount.A.Position,
-			mount.B.Position,
-			mount.C.Position,
-			mount.Normal,
-			fill.Thickness or CONSTANTS.MIN_THICKNESS
-		)
-		return {
-			Instances = { a, b },
-			Parts = {
-				[a] = aCF,
-				[b] = bCF,
-			},
+	function Mount.Triangle.new(
+		p1: VertexPoint,
+		p2: VertexPoint,
+		p3: VertexPoint,
+		normal: Vector3,
+		up: Vector3
+	): TriangleMount
+		local mount = {
+			Type = "Triangle" :: "Triangle",
+			P1 = p1,
+			P2 = p2,
+			P3 = p3,
+			Normal = normal,
+			Up = up,
 		}
-	-- elseif fill.Type == "Splatter" then
-	else
-		error(`unsupported type: "{fill.Type}"`)
+		table.freeze(mount)
+		return mount
+	end
+
+	function Mount.Triangle.fill(mount: TriangleMount, fill: FillInfo, rng: Random?): FillResult
+		if fill.Type == "Surface" then
+			local a, aCF, b, bCF = Util.fillTriangle(
+				mount.P1.Position,
+				mount.P2.Position,
+				mount.P3.Position,
+				mount.Normal,
+				fill.Thickness or CONSTANTS.MIN_THICKNESS
+			)
+			return {
+				Instances = { a, b },
+				Parts = {
+					[a] = aCF,
+					[b] = bCF,
+				},
+			}
+		-- elseif fill.Type == "Splatter" then
+		else
+			error(`unsupported type: "{fill.Type}"`)
+		end
+	end
+
+	function Mount.Triangle.eq(a: TriangleMount, b: TriangleMount): boolean
+		if a.Type ~= b.Type then
+			return false
+		end
+		if not a.Normal:FuzzyEq(b.Normal, CONSTANTS.FUZZY_EQ.EPSILON) then
+			return false
+		end
+		if Point.Vertex.eq(a.P1, b.P1) then
+			if Point.Vertex.eq(a.P2, b.P2) then
+				return Point.Vertex.eq(a.P3, b.P3)
+			elseif Point.Vertex.eq(a.P2, b.P3) then
+				return Point.Vertex.eq(a.P3, b.P2)
+			end
+		elseif Point.Vertex.eq(a.P2, b.P1) then
+			if Point.Vertex.eq(a.P1, b.P2) then
+				return Point.Vertex.eq(a.P3, b.P3)
+			elseif Point.Vertex.eq(a.P1, b.P3) then
+				return Point.Vertex.eq(a.P3, b.P2)
+			end
+		elseif Point.Vertex.eq(a.P3, b.P1) then
+			if Point.Vertex.eq(a.P2, b.P2) then
+				return Point.Vertex.eq(a.P1, b.P3)
+			elseif Point.Vertex.eq(a.P2, b.P3) then
+				return Point.Vertex.eq(a.P1, b.P2)
+			end
+		end
+		return false
+	end
+
+	function Mount.Triangle.getEdges(mount: TriangleMount): { Line }
+		return {
+			Line.Straight.new(mount.P1, mount.P2),
+			Line.Straight.new(mount.P2, mount.P3),
+			Line.Straight.new(mount.P3, mount.P1),
+		}
 	end
 end
 
-function Mount.Triangle.getEdges(mount: TriangleMount): { Line }
-	return {
-		Line.Straight.new(mount.A, mount.B),
-		Line.Straight.new(mount.B, mount.C),
-		Line.Straight.new(mount.C, mount.A),
-	}
-end
-
 export type Mount = TriangleMount
+do
+	Mount.Any = {}
 
-Mount.Any = {}
+	function Mount.Any.fill(mount: Mount, fill: FillInfo, rng: Random?): FillResult
+		local subModule = Mount[mount.Type] :: any
+		assert(subModule.fill, `missing fill for type "{mount.Type}"`)
+		return subModule.fill(mount, fill, rng)
+	end
 
-function Mount.Any.fill(mount: Mount, fill: FillInfo, rng: Random?): FillResult
-	local subModule = Mount[mount.Type] :: any
-	assert(subModule.fill, `missing fill for type "{mount.Type}"`)
-	return subModule.fill(mount, fill, rng)
+	function Mount.Any.eq(a: Mount, b: Mount): boolean
+		local subModule = Mount[a.Type] :: any
+		assert(subModule.eq, `missing eq for type "{a.Type}"`)
+		return subModule.eq(a, b)
+	end
 end
 
 return Mount
