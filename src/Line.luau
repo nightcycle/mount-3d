@@ -3,6 +3,7 @@
 -- Packages
 -- Modules
 local Point = require(script.Parent.Point)
+local Util = require(script.Parent.Util)
 -- Types
 export type Point = Point.Point
 export type VertexPoint = Point.VertexPoint
@@ -46,6 +47,10 @@ do
 		end
 		return false
 	end
+
+	function Line.Straight.magnitude(line: StraightLine): number
+		return line.Offset.Magnitude
+	end
 end
 
 export type QuadraticBezierLine = {
@@ -82,6 +87,10 @@ do
 		end
 		return false
 	end
+
+	function Line.QuadraticBezier.magnitude(line: QuadraticBezierLine): number
+		return Util.getBezierLength(line.P1.Position, line.Intersection.Position, line.P2.Position, 1)
+	end
 end
 
 export type Line = StraightLine | QuadraticBezierLine
@@ -92,6 +101,12 @@ do
 		local subModule = Line[a.Type] :: any
 		assert(subModule.eq, `missing eq for type "{a.Type}"`)
 		return subModule.eq(a, b)
+	end
+
+	function Line.Any.magnitude(line: Line): boolean
+		local subModule = Line[line.Type] :: any
+		assert(subModule.magnitude, `missing magnitude for type "{line.Type}"`)
+		return subModule.magnitude(line)
 	end
 end
 

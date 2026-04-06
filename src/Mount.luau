@@ -186,6 +186,9 @@ do
 	end
 
 	function Mount.Any.getSharedEdges(a: Mount, b: Mount): { Line }
+		if a.Type == b.Type and Mount[a.Type].getSharedEdges then
+			return Mount[a.Type].getSharedEdges(a, b)
+		end
 		local aEdges = Mount.Any.getEdges(a)
 		local bEdges = Mount.Any.getEdges(b)
 		local out: { Line } = {}

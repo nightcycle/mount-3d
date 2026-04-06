@@ -78,4 +78,28 @@ function Util.positionEq(a: Vector3, b: Vector3): boolean
 		and math.abs(a.Z - b.Z) <= CONSTANTS.FUZZY_EQ.LENGTH
 end
 
+-- inspired from https://stackoverflow.com/questions/11854907/calculate-the-length-of-a-segment-of-a-quadratic-bezier
+function Util.getBezierLength(p0: Vector3, p1: Vector3, p2: Vector3, t: number): number
+	local a = p0 - p1 - p1 + p2
+	local b = p1 + p1 - p0 - p0
+
+	local A = 4.0 * a:Dot(a)
+	local B = 4.0 * a:Dot(b)
+	local C = b:Dot(b)
+
+	local bb = B / (2.0 * A)
+	local c = C / A
+	local u = t + bb
+	local k = c - (bb * bb)
+
+	local L = 0.5
+		* (A ^ 0.5)
+		* (
+			(u * (((u * u) + k) ^ 0.5))
+			- (bb * (((bb * bb) + k) ^ 0.5))
+			+ (k * math.log(math.abs((u + ((u * u) + k) ^ 0.5) / (bb + ((bb * bb) + k) ^ 0.5))))
+		)
+
+	return L
+end
 return Util
