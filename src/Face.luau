@@ -8,7 +8,9 @@ local Util = require(script.Parent.Util)
 -- Types
 export type Line = Line.Line
 export type Point = Point.Point
+export type BasicPoint = Point.BasicPoint
 export type VertexPoint = Point.VertexPoint
+export type RotatedPoint = Point.RotatedPoint
 export type DecorationConstructor = (origin: CFrame, scale: number) -> FillResult
 export type DecorationInfo = {
 	Scale: NumberRange?,
@@ -149,6 +151,129 @@ do
 			Line.Straight.new(face.P3, face.P1),
 		}
 	end
+
+	function Face.Triangle.getPoints(face: TriangleFace): { Point }
+		return {
+			face.P1,
+			face.P2,
+			face.P3,
+		}
+	end
+end
+
+export type RectangleFace = {
+	Type: "Rectangle",
+	Center: BasicPoint,
+	Height: number,
+	Width: number,
+	Normal: Vector3,
+	Up: Vector3,
+	Right: Vector3,
+}
+do
+	Face.Rectangle = {}
+
+	function Face.Rectangle.new(
+		center: BasicPoint,
+		height: number,
+		width: number,
+		normal: Vector3,
+		up: Vector3
+	): RectangleFace
+		local face = {
+			Type = "Rectangle" :: "Rectangle",
+			Center = center,
+			Height = height,
+			Width = width,
+			Normal = normal,
+			Up = up,
+			Right = up:Cross(-normal),
+		}
+		table.freeze(face)
+		return face
+	end
+
+	function Face.Rectangle.fill(face: RectangleFace, fill: FillInfo, rng: Random?): FillResult
+		if fill.Type == "Surface" then
+			local part = Instance.new("Part")
+			part.Size = Vector3.new(face.Width, face.Height, fill.Thickness or CONSTANTS.MIN_THICKNESS)
+			return {
+				Instances = { part },
+				Parts = {
+					[part] = CFrame.fromMatrix(
+						face.Center.Position - face.Normal * part.Size.Z / 2,
+						face.Right,
+						face.Up
+					),
+				},
+			}
+		else
+			error(`unsupported type: "{fill.Type}"`)
+		end
+	end
+
+	function Face.Rectangle.eq(a: RectangleFace, b: RectangleFace): boolean
+		if a.Type ~= b.Type then
+			return false
+		end
+		if not a.Normal:FuzzyEq(b.Normal, CONSTANTS.FUZZY_EQ.EPSILON) then
+			return false
+		end
+		if not a.Up:FuzzyEq(b.Up, CONSTANTS.FUZZY_EQ.EPSILON) then
+			return false
+		end
+		if not Util.positionEq(a.Center.Position, b.Center.Position) then
+			return false
+		end
+		if math.abs(a.Height - b.Height) > CONSTANTS.FUZZY_EQ.LENGTH then
+			return false
+		end
+		if math.abs(a.Width - b.Width) > CONSTANTS.FUZZY_EQ.LENGTH then
+			return false
+		end
+		return true
+	end
+
+	function Face.Rectangle.magnitude(face: RectangleFace): number
+		return face.Width * face.Height
+	end
+
+	function Face.Rectangle.isWithin(face: RectangleFace, point: Vector3): boolean
+		local offset = point - face.Center.Position
+		local projUp = math.abs(offset:Dot(face.Up))
+		local projRight = math.abs(offset:Dot(face.Right))
+		local projNormal = math.abs(offset:Dot(face.Normal))
+		return projUp <= face.Height / 2 + CONSTANTS.FUZZY_EQ.LENGTH
+			and projRight <= face.Width / 2 + CONSTANTS.FUZZY_EQ.LENGTH
+			and projNormal < CONSTANTS.FUZZY_EQ.LENGTH
+	end
+
+	function Face.Rectangle.getPoints(face: RectangleFace): { RotatedPoint }
+		local widthVec = face.Right * face.Width
+		local heightVec = face.Up * face.Height
+		local origin = face.Center.Position - widthVec / 2 - heightVec / 2
+		return {
+			Point.Rotated.new(origin, face.Normal, face.Up),
+			Point.Rotated.new(origin + widthVec, face.Normal, face.Up),
+			Point.Rotated.new(origin + widthVec + heightVec, face.Normal, face.Up),
+			Point.Rotated.new(origin + heightVec, face.Normal, face.Up),
+		}
+	end
+
+	function Face.Rectangle.getEdges(face: RectangleFace): { Line }
+		local points = Face.Rectangle.getPoints(face)
+		local vert1 = Point.Vertex.new(points[1].Position, points[1].Normal)
+		local vert2 = Point.Vertex.new(points[2].Position, points[2].Normal)
+		local vert3 = Point.Vertex.new(points[3].Position, points[3].Normal)
+		local vert4 = Point.Vertex.new(points[4].Position, points[4].Normal)
+
+		return {
+			Line.Straight.new(vert1, vert2),
+			Line.Straight.new(vert2, vert3),
+			Line.Straight.new(vert3, vert4),
+			Line.Straight.new(vert4, vert1),
+		}
+	end
 end
 
 export type Face = TriangleFace
@@ -185,6 +310,12 @@ do
 		return subModule.getEdges(face)
 	end
 
+	function Face.Any.getPoints(face: Face): { Point }
+		local subModule = Face[face.Type] :: any
+		assert(subModule.getPoints, `missing getPoints for type "{face.Type}"`)
+		return subModule.getPoints(face)
+	end
+
 	function Face.Any.getSharedEdges(a: Face, b: Face): { Line }
 		if a.Type == b.Type and Face[a.Type].getSharedEdges then
 			return Face[a.Type].getSharedEdges(a, b)
@@ -193,15 +324,51 @@ do
 		local bEdges = Face.Any.getEdges(b)
 		local out: { Line } = {}
 		for i, aEdge in aEdges do
-			local isShared = false
 			for j, bEdge in bEdges do
 				if Line.Any.eq(aEdge, bEdge) then
-					isShared = true
+					table.insert(out, aEdge)
 					break
 				end
 			end
-			if isShared then
-				table.insert(out, aEdge)
+		end
+		return out
+	end
+	function Face.Any.getSharedPoints(
+		a: Face,
+		b: Face,
+		includeNormals: boolean?
+	): { [BasicPoint]: {
+		A: Point,
+		B: Point,
+	} }
+		if a.Type == b.Type and Face[a.Type].getSharedPoints then
+			return Face[a.Type].getSharedPoints(a, b, includeNormals)
+		end
+		local aPoints = Face.Any.getPoints(a)
+		local bPoints = Face.Any.getPoints(b)
+		local out: { [BasicPoint]: {
+			A: Point,
+			B: Point,
+		} } = {}
+		for i, aPoint in aPoints do
+			for j, bPoint in bPoints do
+				if includeNormals then
+					if Point.Any.eq(aPoint, bPoint) then
+						out[Point.Basic.new(aPoint.Position)] = {
+							A = aPoint,
+							B = bPoint,
+						}
+						break
+					end
+				else
+					if Util.positionEq(aPoint.Position, bPoint.Position) then
+						out[Point.Basic.new(aPoint.Position)] = {
+							A = aPoint,
+							B = bPoint,
+						}
+						break
+					end
+				end
 			end
 		end
 		return out
