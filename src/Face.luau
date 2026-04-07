@@ -56,25 +56,17 @@ export type TriangleFace = {
 	P2: VertexPoint,
 	P3: VertexPoint,
 	Normal: Vector3,
-	Up: Vector3,
 }
 do
 	Face.Triangle = {}
 
-	function Face.Triangle.new(
-		p1: VertexPoint,
-		p2: VertexPoint,
-		p3: VertexPoint,
-		normal: Vector3,
-		up: Vector3
-	): TriangleFace
+	function Face.Triangle.new(p1: VertexPoint, p2: VertexPoint, p3: VertexPoint, normal: Vector3): TriangleFace
 		local face = {
 			Type = "Triangle" :: "Triangle",
 			P1 = p1,
 			P2 = p2,
 			P3 = p3,
 			Normal = normal,
-			Up = up,
 		}
 		table.freeze(face)
 		return face
@@ -157,6 +149,105 @@ do
 			face.P1,
 			face.P2,
 			face.P3,
+		}
+	end
+end
+
+export type QuadFace = {
+	Type: "Quad",
+	T1: TriangleFace,
+	T2: TriangleFace,
+}
+do
+	Face.Quad = {}
+
+	function Face.Quad.new(q1: VertexPoint, q2: BasicPoint, q3: VertexPoint, q4: BasicPoint): QuadFace
+		local face = {
+			Type = "Quad" :: "Quad",
+			T1 = Face.Triangle.new(
+				q1,
+				Point.Vertex.new(q2.Position, q1.Normal),
+				Point.Vertex.new(q4.Position, q1.Normal),
+				q1.Normal
+			),
+			T2 = Face.Triangle.new(
+				q3,
+				Point.Vertex.new(q4.Position, q3.Normal),
+				Point.Vertex.new(q2.Position, q3.Normal),
+				q3.Normal
+			),
+		}
+		table.freeze(face)
+		return face
+	end
+
+	function Face.Quad.fill(face: QuadFace, fill: FillInfo, rng: Random?): FillResult
+		if fill.Type == "Surface" then
+			local t1Result = Face.Triangle.fill(face.T1, fill, rng)
+			local t2Result = Face.Triangle.fill(face.T2, fill, rng)
+			local instList = {}
+			for i, inst in t1Result.Instances do
+				table.insert(instList, inst)
+			end
+			for i, inst in t2Result.Instances do
+				table.insert(instList, inst)
+			end
+			local map = {}
+			for part, cf in t1Result.Parts do
+				map[part] = cf
+			end
+			for part, cf in t2Result.Parts do
+				map[part] = cf
+			end
+			return {
+				Instances = instList,
+				Parts = map,
+			}
+		else
+			error(`unsupported type: "{fill.Type}"`)
+		end
+	end
+
+	function Face.Quad.eq(a: QuadFace, b: QuadFace): boolean
+		if a.Type ~= b.Type then
+			return false
+		end
+		if Face.Triangle.eq(a.T1, b.T1) then
+			if Face.Triangle.eq(a.T2, b.T2) then
+				return true
+			end
+		elseif Face.Triangle.eq(a.T1, b.T2) then
+			if Face.Triangle.eq(a.T2, b.T1) then
+				return true
+			end
+		end
+		return false
+	end
+
+	function Face.Quad.magnitude(face: QuadFace): number
+		return Face.Triangle.magnitude(face.T1) + Face.Triangle.magnitude(face.T2)
+	end
+
+	function Face.Quad.isWithin(face: QuadFace, point: Vector3): boolean
+		return Face.Triangle.isWithin(face.T1, point) or Face.Triangle.isWithin(face.T2, point)
+	end
+
+	function Face.Quad.getPoints(face: QuadFace): { VertexPoint }
+		return {
+			face.T1.P1,
+			face.T1.P2,
+			face.T2.P1,
+			face.T2.P2,
+		}
+	end
+
+	function Face.Quad.getEdges(face: QuadFace): { Line }
+		local points = Face.Quad.getPoints(face)
+		return {
+			Line.Straight.new(points[1], points[2]),
+			Line.Straight.new(points[2], points[3]),
+			Line.Straight.new(points[3], points[4]),
+			Line.Straight.new(points[4], points[1]),
 		}
 	end
 end
