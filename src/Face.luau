@@ -467,7 +467,7 @@ do
 	end
 end
 
-export type Face = TriangleFace
+export type Face = TriangleFace | ConcaveNGonFace | RectangleFace | QuadFace
 do
 	Face.Any = {}
 
@@ -575,7 +575,7 @@ do
 			local result = Face.Any.fill(face, {
 				Type = "Surface",
 			})
-			Util.join(out, result)
+			Util.join(out, result.Instances)
 			for i, inst in result.Instances do
 				inst.Parent = workspace.CurrentCamera
 			end

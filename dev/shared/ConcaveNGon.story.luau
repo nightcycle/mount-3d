@@ -10,12 +10,12 @@ local Package = require(game.ReplicatedStorage.Packages.package)
 -- Private Functions
 -- Class
 return function()
-	local face = Package.Face.Triangle.new(
-		Package.Point.Vertex.new(Vector3.new(2, 10, -2), Vector3.yAxis),
-		Package.Point.Vertex.new(Vector3.new(0, 8, 5), Vector3.yAxis),
-		Package.Point.Vertex.new(Vector3.new(5, 12, 2), Vector3.yAxis),
-		Vector3.yAxis
-	)
+	local points = {}
+	for i = 1, 8 do
+		local angle = math.rad((i - 1) * 360 / 8)
+		points[i] = Package.Point.Vertex.new(Vector3.new(math.sin(angle) * 5, 10+i*0.5, math.cos(angle) * 5), Vector3.yAxis)
+	end
+	local face = Package.Face.ConcaveNGon.new(points)
 
 	local instList = Package.Face.Any.debug(face)
 

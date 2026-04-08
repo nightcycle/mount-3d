@@ -10,11 +10,12 @@ local Package = require(game.ReplicatedStorage.Packages.package)
 -- Private Functions
 -- Class
 return function()
-	local face = Package.Face.Triangle.new(
-		Package.Point.Vertex.new(Vector3.new(2, 10, -2), Vector3.yAxis),
-		Package.Point.Vertex.new(Vector3.new(0, 8, 5), Vector3.yAxis),
-		Package.Point.Vertex.new(Vector3.new(5, 12, 2), Vector3.yAxis),
-		Vector3.yAxis
+	local face = Package.Face.Rectangle.new(
+		Package.Point.Basic.new(Vector3.new(0, 10, 0)),
+		5,
+		3,
+		Vector3.yAxis,
+		Vector3.zAxis
 	)
 
 	local instList = Package.Face.Any.debug(face)
