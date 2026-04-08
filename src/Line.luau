@@ -1,9 +1,11 @@
 --!strict
 -- Services
 -- Packages
+local Draw = require(script.Parent.Parent.Draw)
 -- Modules
 local Point = require(script.Parent.Point)
 local Util = require(script.Parent.Util)
+local ENV = require(script.Parent.ENV)
 -- Types
 export type Point = Point.Point
 export type VertexPoint = Point.VertexPoint
@@ -51,6 +53,16 @@ do
 	function Line.Straight.magnitude(line: StraightLine): number
 		return line.Offset.Magnitude
 	end
+
+	function Line.Straight.debug(line: StraightLine): { Instance }
+		local out: { Instance } = {}
+		Util.join(out, Point.Any.debug(line.P1))
+		Util.join(out, Point.Any.debug(line.P2))
+		if ENV.DEBUG_SHOW_LINES then
+			table.insert(out, Draw.vector(line.P1.Position, line.Offset))
+		end
+		return out
+	end
 end
 
 export type QuadraticBezierLine = {
@@ -91,6 +103,14 @@ do
 	function Line.QuadraticBezier.magnitude(line: QuadraticBezierLine): number
 		return Util.getBezierLength(line.P1.Position, line.Intersection.Position, line.P2.Position, 1)
 	end
+
+	function Line.QuadraticBezier.debug(line: QuadraticBezierLine): { Instance }
+		local out: { Instance } = {}
+		Util.join(out, Point.Any.debug(line.P1))
+		Util.join(out, Point.Any.debug(line.Intersection))
+		Util.join(out, Point.Any.debug(line.P2))
+		return out
+	end
 end
 
 export type Line = StraightLine | QuadraticBezierLine
@@ -107,6 +127,12 @@ do
 		local subModule = Line[line.Type] :: any
 		assert(subModule.magnitude, `missing magnitude for type "{line.Type}"`)
 		return subModule.magnitude(line)
+	end
+
+	function Line.Any.debug(line: Line): { Instance }
+		local subModule = Line[line.Type] :: any
+		assert(subModule.debug, `missing debug for type "{line.Type}"`)
+		return subModule.debug(line)
 	end
 end
 

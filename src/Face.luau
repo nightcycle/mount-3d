@@ -5,6 +5,7 @@
 local Line = require(script.Parent.Line)
 local Point = require(script.Parent.Point)
 local Util = require(script.Parent.Util)
+local ENV = require(script.Parent.ENV)
 -- Types
 export type Line = Line.Line
 export type Point = Point.Point
@@ -561,6 +562,29 @@ do
 				end
 			end
 		end
+		return out
+	end
+
+	function Face.Any.debug(face: Face): { Instance }
+		local out: { Instance } = {}
+
+		for i, edge in Face.Any.getEdges(face) do
+			Util.join(out, Line.Any.debug(edge))
+		end
+		if ENV.DEBUG_SHOW_FACES then
+			local result = Face.Any.fill(face, {
+				Type = "Surface",
+			})
+			Util.join(out, result)
+			local parts = {}
+			local cfs = {}
+			for part, cf in result.Parts do
+				table.insert(parts, part)
+				table.insert(cfs, cf)
+			end
+			workspace:BulkMoveTo(parts, cfs, Enum.BulkMoveMode.FireCFrameChanged)
+		end
+
 		return out
 	end
 end

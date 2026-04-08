@@ -72,6 +72,12 @@ function Util.fillTriangle(
 		CFrame.fromMatrix((a + c) / 2, -right, up, -back) + normal * (-thickness / 2)
 end
 
+function Util.join<V>(bin: { V }, newItems: { V })
+	for i, v in newItems do
+		table.insert(bin, v)
+	end
+end
+
 function Util.positionEq(a: Vector3, b: Vector3): boolean
 	return math.abs(a.X - b.X) <= CONSTANTS.FUZZY_EQ.LENGTH
 		and math.abs(a.Y - b.Y) <= CONSTANTS.FUZZY_EQ.LENGTH

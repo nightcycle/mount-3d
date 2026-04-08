@@ -1,8 +1,10 @@
 --!strict
 -- Services
 -- Packages
+local Draw = require(script.Parent.Parent.Draw)
 -- Modules
 local Util = require(script.Parent.Util)
+local ENV = require(script.Parent.ENV)
 -- Types
 -- Constants
 local CONSTANTS = require(script.Parent.CONSTANTS)
@@ -37,6 +39,14 @@ do
 	function Point.Basic.lerp(a: BasicPoint, b: BasicPoint, alpha: number): BasicPoint
 		return Point.Basic.new(a.Position:Lerp(b.Position, alpha))
 	end
+
+	function Point.Basic.debug(point: BasicPoint): { Instance }
+		local out: { Instance } = {}
+		if ENV.DEBUG_SHOW_POINTS then
+			table.insert(out, Draw.point(point.Position))
+		end
+		return out
+	end
 end
 
 export type VertexPoint = {
@@ -66,6 +76,14 @@ do
 
 	function Point.Vertex.lerp(a: VertexPoint, b: VertexPoint, alpha: number): VertexPoint
 		return Point.Vertex.new(a.Position:Lerp(b.Position, alpha), a.Normal:Lerp(b.Normal, alpha).Unit)
+	end
+
+	function Point.Vertex.debug(point: VertexPoint): { Instance }
+		local out: { Instance } = {}
+		if ENV.DEBUG_SHOW_POINTS then
+			table.insert(out, Draw.point(point.Position))
+		end
+		return out
 	end
 end
 
@@ -105,6 +123,14 @@ do
 			a.Up:Lerp(b.Up, alpha).Unit
 		)
 	end
+
+	function Point.Rotated.debug(point: RotatedPoint): { Instance }
+		local out: { Instance } = {}
+		if ENV.DEBUG_SHOW_POINTS then
+			table.insert(out, Draw.cframe(CFrame.fromMatrix(point.Position, (-point.Normal):Cross(point.Up), point.Up)))
+		end
+		return out
+	end
 end
 
 export type Point = VertexPoint | RotatedPoint | BasicPoint
@@ -125,6 +151,12 @@ do
 		else
 			return Point.Basic.new(a.Position:Lerp(b.Position, alpha))
 		end
+	end
+
+	function Point.Any.debug(point: Point): { Instance }
+		local subModule = Point[point.Type] :: any
+		assert(subModule.debug, `missing debug for type "{point.Type}"`)
+		return subModule.debug(point)
 	end
 end
 
