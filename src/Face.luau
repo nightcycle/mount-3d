@@ -576,6 +576,9 @@ do
 				Type = "Surface",
 			})
 			Util.join(out, result)
+			for i, inst in result.Instances do
+				inst.Parent = workspace.CurrentCamera
+			end
 			local parts = {}
 			local cfs = {}
 			for part, cf in result.Parts do
