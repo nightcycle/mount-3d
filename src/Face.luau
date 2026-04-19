@@ -88,6 +88,26 @@ function fixAdjNormals(normal: Vector3, up: Vector3?, right: Vector3?): (Vector3
 	return up, right
 end
 
+function getMaxRect(origin: CFrame, points: { Point.Point }): (CFrame, number, number)
+	local minX = math.huge
+	local maxX = 0
+	local minY = 0
+	local maxY = 0
+
+	for i, point in points do
+		local offset = origin:PointToObjectSpace(point.Position)
+		minX = math.min(offset.X, minX)
+		maxX = math.max(offset.X, maxX)
+		minY = math.min(offset.Y, minY)
+		maxY = math.max(offset.Y, maxY)
+	end
+
+	local width = maxX - minX
+	local height = maxY - minY
+
+	return origin * CFrame.new(minX + width / 2, minY + height / 2, 0), width, height
+end
+
 -- Class
 local Face = {}
 
@@ -232,6 +252,44 @@ do
 
 	function Face.Rectangle.center(face: RectangleFace): Vector3
 		return face.Center.Position
+	end
+
+	function Face.Rectangle.fit(
+		face: RectangleFace,
+		containmentType: ContainmentType,
+		up: Vector3?,
+		right: Vector3?
+	): Face
+		local normal = Face.Rectangle.normal(face)
+		local center = Face.Rectangle.center(face)
+		up, right = fixAdjNormals(normal, up, right)
+		assert(up and right, `bad normals`)
+		if containmentType == "Rectangle" then
+			local rectCF, width, height =
+				getMaxRect(CFrame.fromMatrix(center, right, up), Face.Rectangle.vertices(face))
+			return Face.Rectangle.new(Point.Rotated.new(rectCF), height, width)
+		else
+			error(`unsupported containment type: "{containmentType}"`)
+		end
+	end
+
+	function Face.Rectangle.tile(face: RectangleFace, format: TileFormat, up: Vector3?, right: Vector3?): { Face }
+		local normal = Face.Rectangle.normal(face)
+		up, right = fixAdjNormals(normal, up, right)
+		assert(up and right, `bad normals`)
+
+		local out: { Face } = {}
+		if format.Type == "Rows" then
+			local edges = Face.Rectangle.edges(face)
+			local center = Face.Rectangle.center(face)
+			local maxRect = Face.Rectangle.fit(face, "Rectangle", up, right)
+			assert(maxRect.Type == "Rectangle", `bad maxRect`)
+			return tileRowsByStraightEdgeHits(maxRect, format, edges, center, normal, up, right)
+		else
+			error(`unsupported format: "{format.Type}"`)
+		end
+
+		return out
 	end
 
 	function Face.Rectangle.fill(face: RectangleFace, fill: FillInfo, rng: Random?): FillResult
@@ -456,16 +514,8 @@ do
 		up, right = fixAdjNormals(normal, up, right)
 		assert(up and right, `bad normals`)
 		if containmentType == "Rectangle" then
-			local cf = CFrame.fromMatrix(center, right, up)
-
-			local offset1 = cf:PointToObjectSpace(face.P1.Position)
-			local offset2 = cf:PointToObjectSpace(face.P2.Position)
-			local offset3 = cf:PointToObjectSpace(face.P3.Position)
-
-			local width = 2 * math.max(math.abs(offset1.X), math.abs(offset2.X), math.abs(offset3.X))
-			local height = 2 * math.max(math.abs(offset1.Y), math.abs(offset2.Y), math.abs(offset3.Y))
-
-			return Face.Rectangle.new(Point.Rotated.new(cf), height, width)
+			local rectCF, width, height = getMaxRect(CFrame.fromMatrix(center, right, up), Face.Triangle.vertices(face))
+			return Face.Rectangle.new(Point.Rotated.new(rectCF), height, width)
 		else
 			error(`unsupported containment type: "{containmentType}"`)
 		end
@@ -741,20 +791,8 @@ do
 		assert(up and right, `bad normals`)
 		local center = Face.Quad.center(face)
 		if containmentType == "Rectangle" then
-			local cf = CFrame.fromMatrix(center, right, up)
-			local vertices = Face.Quad.vertices(face)
-
-			local offset1 = cf:PointToObjectSpace(vertices[1].Position)
-			local offset2 = cf:PointToObjectSpace(vertices[2].Position)
-			local offset3 = cf:PointToObjectSpace(vertices[3].Position)
-			local offset4 = cf:PointToObjectSpace(vertices[4].Position)
-
-			local width = 2
-				* math.max(math.abs(offset1.X), math.abs(offset2.X), math.abs(offset3.X), math.abs(offset4.X))
-			local height = 2
-				* math.max(math.abs(offset1.Y), math.abs(offset2.Y), math.abs(offset3.Y), math.abs(offset4.Y))
-
-			return Face.Rectangle.new(Point.Rotated.new(cf), height, width)
+			local rectCF, width, height = getMaxRect(CFrame.fromMatrix(center, right, up), Face.Quad.vertices(face))
+			return Face.Rectangle.new(Point.Rotated.new(rectCF), height, width)
 		else
 			error(`unsupported containmentType: "{containmentType}"`)
 		end
