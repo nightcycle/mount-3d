@@ -119,14 +119,12 @@ Module.Osiris.PositionInput = function(props: {
 		props.Arguments and props.Arguments.Transparency,
 		props.Arguments and props.Arguments.Size
 	)
-	if state:changed() then
-		update(
-			state:get(),
-			props.Arguments and props.Arguments.Color,
-			props.Arguments and props.Arguments.Transparency,
-			props.Arguments and props.Arguments.Size
-		)
-	end
+	update(
+		state:get(),
+		props.Arguments and props.Arguments.Color,
+		props.Arguments and props.Arguments.Transparency,
+		props.Arguments and props.Arguments.Size
+	)
 end
 Module.Osiris.CFrameInput = function(props: {
 	Arguments: {
@@ -175,14 +173,12 @@ Module.Osiris.CFrameInput = function(props: {
 		props.Arguments and props.Arguments.Transparency,
 		props.Arguments and props.Arguments.Size
 	)
-	if state:changed() then
-		update(
-			state:get(),
-			props.Arguments and props.Arguments.Color,
-			props.Arguments and props.Arguments.Transparency,
-			props.Arguments and props.Arguments.Size
-		)
-	end
+	update(
+		state:get(),
+		props.Arguments and props.Arguments.Color,
+		props.Arguments and props.Arguments.Transparency,
+		props.Arguments and props.Arguments.Size
+	)
 end
 
 return Module
