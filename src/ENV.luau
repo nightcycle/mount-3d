@@ -3,21 +3,28 @@
 -- Packages
 -- Modules
 -- Types
+type Env = {
+	IS_VERBOSE: boolean,
+	DEBUG_SHOW_POINTS: boolean,
+	DEBUG_SHOW_LINES: boolean,
+	DEBUG_SHOW_NORMALS: boolean,
+	DEBUG_SHOW_FACES: boolean,
+	[any]: never,
+}
 -- Constants
 local PREFIX = "__MOUNT3D__"
 -- Variables
 -- References
 -- Private Functions
 -- Class
-local DEFAULT_ENV = {
+local DEFAULT_ENV: Env = {
 	IS_VERBOSE = false,
 	DEBUG_SHOW_POINTS = true,
 	DEBUG_SHOW_LINES = true,
 	DEBUG_SHOW_NORMALS = true,
 	DEBUG_SHOW_FACES = true,
-	DEBUG_PARTS_LOCKED = true,
 }
-local out: any = setmetatable({}, {
+local out: Env = setmetatable({}, {
 	__index = function(_, readableKey: string): any?
 		local k = PREFIX .. readableKey
 		local v = _G[k]
@@ -54,6 +61,6 @@ local out: any = setmetatable({}, {
 		assert(rawget(DEFAULT_ENV, readableKey) ~= nil, `Attempt to set undefined key "{readableKey}" in ENV`)
 		_G[k] = v
 	end,
-})
+}) :: any
 
-return out :: typeof(DEFAULT_ENV)
+return out :: Env

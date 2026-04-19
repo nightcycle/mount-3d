@@ -2,7 +2,6 @@
 -- Services
 -- Packages
 -- Modules
-local ENV = require(script.Parent.ENV)
 -- Types
 -- Constants
 local CONSTANTS = require(script.Parent.CONSTANTS)
@@ -11,24 +10,6 @@ local CONSTANTS = require(script.Parent.CONSTANTS)
 -- Private Functions
 -- Class
 local Util = {}
-
-function Util.lock(inst: Instance)
-	if ENV.DEBUG_PARTS_LOCKED then
-		return
-	end
-	if inst:IsA("BasePart") then
-		inst.Locked = true
-	end
-	for i, v in inst:GetDescendants() do
-		if v:IsA("BasePart") then
-			v.Locked = true
-		end
-	end
-end
-
-function Util.getInstance(className: string): Instance
-	return Instance.new(className)
-end
 
 function Util.clampToPlane(origin: Vector3, normal: Vector3, point: Vector3): Vector3
 	--@TODO
@@ -50,16 +31,15 @@ function Util.getTriangleArea(a: Vector3, b: Vector3, c: Vector3): number
 	return math.sqrt(semiPerimeterLength * deltaA * deltaB * deltaC)
 end
 
-function Util.fillTriangle(
+function Util.setTriangle(
 	a: Vector3,
 	b: Vector3,
 	c: Vector3,
 	normal: Vector3,
-	thickness: number
-): (WedgePart, CFrame, WedgePart, CFrame)
-	local w1 = Util.getInstance("WedgePart") :: WedgePart
-	local w2 = Util.getInstance("WedgePart") :: WedgePart
-
+	thickness: number,
+	w1: WedgePart,
+	w2: WedgePart
+): (CFrame, CFrame)
 	-- Render the 3D triangle
 	local ab, ac, bc = b - a, c - a, c - b
 	local abd, acd, bcd = ab:Dot(ab), ac:Dot(ac), bc:Dot(bc)
@@ -81,15 +61,18 @@ function Util.fillTriangle(
 	w1.Size = Vector3.new(thickness, height, math.abs(ab:Dot(back)))
 	w2.Size = Vector3.new(thickness, height, math.abs(ac:Dot(back)))
 
-	return w1,
-		CFrame.fromMatrix((a + b) / 2, right, up, back) + normal * (-thickness / 2),
-		w2,
+	return CFrame.fromMatrix((a + b) / 2, right, up, back) + normal * (-thickness / 2),
 		CFrame.fromMatrix((a + c) / 2, -right, up, -back) + normal * (-thickness / 2)
 end
 
 function Util.join<V>(bin: { V }, newItems: { V })
 	for i, v in newItems do
 		table.insert(bin, v)
+	end
+end
+function Util.parent<V>(inst: Instance, children: { Instance })
+	for i, v in children do
+		v.Parent = inst
 	end
 end
 

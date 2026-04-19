@@ -12,6 +12,7 @@ export type VertexPoint = Point.VertexPoint
 export type RotatedPoint = Point.RotatedPoint
 export type BasicPoint = Point.BasicPoint
 -- Constants
+local CONSTANTS = require(script.Parent.CONSTANTS)
 -- Variables
 -- References
 -- Private Functions
@@ -54,26 +55,75 @@ do
 		return line.Offset.Magnitude
 	end
 
-	function Line.Straight.intersection(a: StraightLine, b: StraightLine): Vector3?
+	function Line.Straight.closestPoints(
+		a: StraightLine,
+		b: StraightLine
+	): {
+		A: VertexPoint,
+		B: VertexPoint,
+		Distance: number,
+	}
 		local p = a.P1.Position
 		local r = a.Offset
 		local q = b.P1.Position
 		local s = b.Offset
 
-		local rxs = r.X * s.Z - r.Z * s.X
-		if math.abs(rxs) < 1e-9 then
-			return nil -- parallel or collinear
+		local w = p - q
+
+		local a_ = r:Dot(r)
+		local b_ = r:Dot(s)
+		local c_ = s:Dot(s)
+		local d_ = r:Dot(w)
+		local e_ = s:Dot(w)
+
+		local denom = a_ * c_ - b_ * b_
+
+		local t: number
+		local u: number
+
+		if math.abs(denom) < 1e-12 then
+			-- Parallel: project one endpoint onto the other segment
+			t = 0
+			u = if c_ > 1e-12 then e_ / c_ else 0
+		else
+			t = (b_ * e_ - c_ * d_) / denom
+			u = (a_ * e_ - b_ * d_) / denom
 		end
 
-		local qp = q - p
-		local t = (qp.X * s.Z - qp.Z * s.X) / rxs
-		local u = (qp.X * r.Z - qp.Z * r.X) / rxs
+		-- Clamp to segment bounds
+		t = math.clamp(t, 0, 1)
+		u = math.clamp(u, 0, 1)
 
-		if t >= 0 and t <= 1 and u >= 0 and u <= 1 then
-			return p + r * t
+		-- Re-clamp: after clamping one parameter, the other's optimal value may shift
+		-- Recompute u given clamped t
+		local w2 = p + r * t - q
+		u = if c_ > 1e-12 then s:Dot(w2) / c_ else u
+		u = math.clamp(u, 0, 1)
+
+		-- Recompute t given clamped u
+		local w3 = q + s * u - p
+		t = if a_ > 1e-12 then r:Dot(w3) / a_ else t
+		t = math.clamp(t, 0, 1)
+
+		local pointOnA = p + r * t
+		local pointOnB = q + s * u
+
+		local distance = (pointOnA - pointOnB).Magnitude
+
+		return {
+			A = Point.Vertex.new(pointOnA, a.P1.Normal:Lerp(a.P2.Normal, t / r.Magnitude).Unit),
+			B = Point.Vertex.new(pointOnB, b.P1.Normal:Lerp(b.P2.Normal, u / s.Magnitude).Unit),
+			Distance = distance,
+		}
+	end
+
+	function Line.Straight.intersection(a: StraightLine, b: StraightLine, epsilon: number?): Vector3?
+		local closestPoints = Line.Straight.closestPoints(a, b)
+		if closestPoints.Distance > (epsilon or CONSTANTS.FUZZY_EQ.LENGTH) then
+			return nil
 		end
-
-		return nil
+		-- Return the midpoint of the two closest points
+		return closestPoints.A.Position:Lerp(closestPoints.B.Position, 0.5)
 	end
 
 	function Line.Straight.debug(line: StraightLine): { Instance }
@@ -82,9 +132,6 @@ do
 		Util.join(out, Point.Any.debug(line.P2))
 		if ENV.DEBUG_SHOW_LINES then
 			local newLine = Draw.vector(line.P1.Position, line.Offset)
-			if ENV.DEBUG_PARTS_LOCKED then
-				newLine.Locked = true
-			end
 			for i, child in newLine:GetDescendants() do
 				if child:IsA("BasePart") then
 					child.Locked = true
@@ -204,7 +251,7 @@ do
 	function Line.Any.intersection(a: Line, b: Line): Vector3?
 		local subModule = Line[a.Type] :: any
 		assert(subModule.intersection, `missing pointAtOffset for type "{a.Type}"`)
-		return subModule.intersection(a,b)
+		return subModule.intersection(a, b)
 	end
 end
 

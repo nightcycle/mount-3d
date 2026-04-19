@@ -18,7 +18,7 @@ return function(frame)
 	local instList: { Instance } = {}
 	local cleanUp = Osiris:Connect(function(): ()
 		local pointNumber = Controllers.Osiris.SavedState(`{script.Name}/PointNumber`, 8)
-		local height = Controllers.Osiris.SavedState(`{script.Name}/Height`, 0)
+		local length = Controllers.Osiris.SavedState(`{script.Name}/Length`, 5)
 		local windowSize = Controllers.Osiris.SavedState(`{script.Name}/ControlSize`, Vector2.new(150, 100))
 
 		local didChange = false
@@ -28,7 +28,7 @@ return function(frame)
 			},
 			States = {
 				size = windowSize,
-			}
+			},
 		}, function(_)
 			if
 				Osiris.Widget
@@ -49,11 +49,11 @@ return function(frame)
 				Osiris.Widget
 					.SliderNum({
 						Arguments = {
-							Text = "Height",
-							Min = 0,
+							Text = "Length",
+							Min = 1,
 						},
 						States = {
-							number = height,
+							number = length,
 						},
 					})
 					.numberChanged()
@@ -70,11 +70,7 @@ return function(frame)
 			for i = 1, pointNumber:get() do
 				local angle = math.rad((i - 1) * 360 / pointNumber:get())
 				points[i] = Package.Point.Vertex.new(
-					Vector3.new(
-						math.sin(angle) * 5,
-						10 + (i - 1) * height:get() / pointNumber:get(),
-						math.cos(angle) * 5
-					),
+					Vector3.new(math.sin(angle) * length:get(), 10, math.cos(angle) * length:get()),
 					Vector3.yAxis
 				)
 			end
@@ -88,5 +84,6 @@ return function(frame)
 		for i, v in instList do
 			v:Destroy()
 		end
+		Package.InstanceCache.clearAll(true)
 	end
 end

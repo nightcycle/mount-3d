@@ -97,9 +97,10 @@ return function()
 			local orig = Package.ENV.DEBUG_SHOW_POINTS
 			Package.ENV.DEBUG_SHOW_POINTS = false
 
-			local intersection = Package.Line.Straight.intersection(line1, line2)
-			if intersection then
-				table.insert(instList, Draw.point(intersection))
+			local closestPoints = Package.Line.Straight.closestPoints(line1, line2)
+			if closestPoints then
+				table.insert(instList, Draw.point(closestPoints.A.Position))
+				table.insert(instList, Draw.point(closestPoints.B.Position))
 			end
 
 			Package.Util.join(instList, Package.Line.Straight.debug(line1))
@@ -114,5 +115,6 @@ return function()
 		for i, v in instList do
 			v:Destroy()
 		end
+		Package.InstanceCache.clearAll(true)
 	end
 end

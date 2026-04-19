@@ -44,9 +44,6 @@ do
 		local out: { Instance } = {}
 		if ENV.DEBUG_SHOW_POINTS then
 			local newPoint = Draw.point(point.Position)
-			if ENV.DEBUG_PARTS_LOCKED then
-				newPoint.Locked = true
-			end
 			table.insert(out, newPoint)
 		end
 		return out
@@ -86,9 +83,6 @@ do
 		local out: { Instance } = {}
 		if ENV.DEBUG_SHOW_POINTS then
 			local newPoint = Draw.point(point.Position)
-			if ENV.DEBUG_PARTS_LOCKED then
-				newPoint.Locked = true
-			end
 			table.insert(out, newPoint)
 		end
 		return out
@@ -134,11 +128,6 @@ do
 		local out: { Instance } = {}
 		if ENV.DEBUG_SHOW_POINTS then
 			local newCF = Draw.cframe(CFrame.fromMatrix(point.Position, (-point.Normal):Cross(point.Up), point.Up))
-			if ENV.DEBUG_PARTS_LOCKED then
-				if newCF:IsA("BasePart") then
-					newCF.Locked = true
-				end
-			end
 			table.insert(out, newCF)
 		end
 		return out

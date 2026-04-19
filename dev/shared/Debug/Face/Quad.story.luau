@@ -69,5 +69,6 @@ return function()
 		for i, v in instList do
 			v:Destroy()
 		end
+		Package.InstanceCache.clearAll(true)
 	end
 end

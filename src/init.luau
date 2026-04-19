@@ -10,10 +10,13 @@
 -- Class
 local Module = {}
 
+Module.InstanceCache = require(script.InstanceCache)
 Module.Face = require(script.Face)
 Module.Line = require(script.Line)
 Module.Point = require(script.Point)
 Module.ENV = require(script.ENV)
 Module.Util = require(script.Util)
+Module.Debug = require(script.Debug)
+
 
 return Module

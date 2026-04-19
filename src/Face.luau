@@ -6,6 +6,8 @@ local Draw = require(game.ReplicatedStorage.Packages.Draw)
 local Line = require(script.Parent.Line)
 local Point = require(script.Parent.Point)
 local Util = require(script.Parent.Util)
+local Debug = require(script.Parent.Debug)
+local InstanceCache = require(script.Parent.InstanceCache)
 local ENV = require(script.Parent.ENV)
 -- Types
 export type Line = Line.Line
@@ -234,12 +236,16 @@ do
 
 	function Face.Triangle.fill(face: TriangleFace, fill: FillInfo, rng: Random?): FillResult
 		if fill.Type == "Surface" then
-			local a, aCF, b, bCF = Util.fillTriangle(
+			local a = InstanceCache.Class.WedgePart:allocate()
+			local b = InstanceCache.Class.WedgePart:allocate()
+			local aCF, bCF = Util.setTriangle(
 				face.P1.Position,
 				face.P2.Position,
 				face.P3.Position,
 				Face.Triangle.normal(face),
-				fill.Thickness or CONSTANTS.MIN_THICKNESS
+				fill.Thickness or CONSTANTS.MIN_THICKNESS,
+				a,
+				b
 			)
 			return {
 				Instances = { a, b },
@@ -898,12 +904,6 @@ do
 			table.insert(out, Draw.vector(center, -normal * 3, Color3.new(0, 1, 0)))
 			table.insert(out, Draw.vector(center, up * 3, Color3.new(0, 0, 1)))
 			table.insert(out, Draw.vector(center, right * 3, Color3.new(1, 0, 0)))
-			local isLocked = ENV.DEBUG_PARTS_LOCKED
-			if isLocked then
-				for i, inst in out do
-					Util.lock(inst)
-				end
-			end
 		end
 		if ENV.DEBUG_SHOW_FACES then
 			local result = Face.Any.fill(face, {
@@ -916,7 +916,6 @@ do
 			local parts = {}
 			local cfs = {}
 			for part, cf in result.Parts do
-				Util.lock(part)
 				table.insert(parts, part)
 				table.insert(cfs, cf)
 			end
