@@ -17,48 +17,51 @@ return function()
 	end)
 	local instList: { Instance } = {}
 	local cleanUp = Osiris:Connect(function()
-		local p1 = Osiris.State(Vector3.zero)
+		local p1 = Osiris.State(CFrame.new(Vector3.zero))
 		local p2 = Osiris.State(Vector3.one + Vector3.new(10, 0, 0))
-		local p3 = Osiris.State(Vector3.one + Vector3.new(10, 0, 10))
+		local p3 = Osiris.State(CFrame.new(Vector3.one + Vector3.new(10, 0, 10)))
 		local p4 = Osiris.State(Vector3.one + Vector3.new(0, 0, 10))
 
-		local didChange = false
-		Osiris.Widget.Window({
+		local widget = Osiris.Widget.Text({
 			Arguments = {
-				Title = "Controls",
+				Text = script.Name,
 			},
-		}, function(window)
-			Controllers.Osiris.PositionInput({ States = { position = p1 }, Extra = { parent = window } })
-			for i, v in { p1, p2, p3, p4 } do
-				if
-					Osiris.Widget
-						.InputVector3({
-							Arguments = {
-								Text = `P{i}`,
-							},
-							States = {
-								number = v,
-							},
-						})
-						.numberChanged()
-				then
-					didChange = true
-				end
-			end
-		end)
+		})
 
+		local didChange = false
+		for i, v in { p1 :: any, p2, p3, p4 } do
+			if typeof(v:get()) == "Vector3" then
+				Controllers.Osiris.PositionInput({
+					Arguments = { Size = 2, Color = Color3.new(1, 0, 0) },
+					States = { value = v :: any },
+					Extra = { parent = widget },
+				})
+			else
+				Controllers.Osiris.CFrameInput({
+					Arguments = { Size = 2, Color = Color3.new(0, 0, 1) },
+					States = { value = v },
+					Extra = { parent = widget },
+				})
+			end
+			if v:changed() then
+				didChange = true
+			end
+		end
 		if didChange or #instList == 0 then
 			for i, v in instList do
 				v:Destroy()
 			end
+
 			local face = Package.Face.Quad.new(
-				Package.Point.Vertex.new(p1:get(), Vector3.yAxis),
+				Package.Point.Vertex.new(p1:get().Position, p1:get().UpVector),
 				Package.Point.Basic.new(p2:get()),
-				Package.Point.Vertex.new(p3:get(), Vector3.yAxis),
+				Package.Point.Vertex.new(p3:get().Position, p3:get().UpVector),
 				Package.Point.Basic.new(p4:get())
 			)
-
+			local orig = Package.ENV.DEBUG_SHOW_POINTS
+			Package.ENV.DEBUG_SHOW_POINTS = false
 			instList = Package.Face.Any.debug(face)
+			Package.ENV.DEBUG_SHOW_POINTS = true
 		end
 	end)
 

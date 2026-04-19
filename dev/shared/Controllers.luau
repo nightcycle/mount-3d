@@ -73,8 +73,14 @@ Module.Osiris = {}
 Module.Osiris.Position = {}
 
 Module.Osiris.PositionInput = function(props: {
+	Arguments: {
+		Transparency: number?,
+		Color: Color3?,
+		Size: number?,
+		[any]: never,
+	}?,
 	States: {
-		position: Osiris.State<Vector3>,
+		value: Osiris.State<Vector3>,
 		[any]: never,
 	},
 	Extra: {
@@ -83,24 +89,99 @@ Module.Osiris.PositionInput = function(props: {
 	},
 	[any]: never,
 })
-	local state = props.States.position
+	local state = props.States.value
 	local widget = props.Extra.parent
 	local id = `Position.new(widget={widget.ID},state={state.ID})`
-	local update = Module.bindToWidget(id, widget, function(): Part
-		local part = Instance.new("Part")
-		part.Name = `PositionState`
-		part.Anchored = true
-		part.Transparency = 0.5
-		part.Shape = Enum.PartType.Ball
-		part.Size = Vector3.one * 3
-		part.Parent = workspace.CurrentCamera
-
-		return part
-	end, function(part: Part, pos: Vector3)
-		part.Position = state:get()
-	end, state:get())
+	local update = Module.bindToWidget(
+		id,
+		widget,
+		function(): Part
+			local part = Instance.new("Part")
+			part.Name = `PositionInput<{id}>`
+			part.Anchored = true
+			part.Shape = Enum.PartType.Ball
+			part.Parent = workspace.CurrentCamera
+			Module.bindToInstance(part, {
+				part:GetPropertyChangedSignal("Position"):Connect(function()
+					state:set(part.Position)
+				end),
+			})
+			return part
+		end,
+		function(part: Part, pos: Vector3, color: Color3?, transparency: number?, size: number?)
+			part.Position = pos
+			part.Transparency = transparency or 0.5
+			part.Color = color or Color3.new(0.5, 0.5, 0.5)
+			part.Size = Vector3.one * (size or 3)
+		end,
+		state:get(),
+		props.Arguments and props.Arguments.Color,
+		props.Arguments and props.Arguments.Transparency,
+		props.Arguments and props.Arguments.Size
+	)
 	if state:changed() then
-		update(state:get())
+		update(
+			state:get(),
+			props.Arguments and props.Arguments.Color,
+			props.Arguments and props.Arguments.Transparency,
+			props.Arguments and props.Arguments.Size
+		)
+	end
+end
+Module.Osiris.CFrameInput = function(props: {
+	Arguments: {
+		Transparency: number?,
+		Color: Color3?,
+		Size: number?,
+		[any]: never,
+	}?,
+	States: {
+		value: Osiris.State<CFrame>,
+		[any]: never,
+	},
+	Extra: {
+		parent: Osiris.BaseWidget,
+		[any]: never,
+	},
+	[any]: never,
+})
+	local state = props.States.value
+	local widget = props.Extra.parent
+	local id = `Position.new(widget={widget.ID},state={state.ID})`
+	local update = Module.bindToWidget(
+		id,
+		widget,
+		function(): Part
+			local part = Instance.new("Part")
+			part.Name = `CFrameInput<{id}>`
+			part.Anchored = true
+			part.Shape = Enum.PartType.Block
+			part.Parent = workspace.CurrentCamera
+			Module.bindToInstance(part, {
+				part:GetPropertyChangedSignal("CFrame"):Connect(function()
+					state:set(part.CFrame)
+				end),
+			})
+			return part
+		end,
+		function(part: Part, cf: CFrame, color: Color3?, transparency: number?, size: number?)
+			part.CFrame = cf
+			part.Transparency = transparency or 0.5
+			part.Color = color or Color3.new(0.5, 0.5, 0.5)
+			part.Size = Vector3.one * (size or 3)
+		end,
+		state:get(),
+		props.Arguments and props.Arguments.Color,
+		props.Arguments and props.Arguments.Transparency,
+		props.Arguments and props.Arguments.Size
+	)
+	if state:changed() then
+		update(
+			state:get(),
+			props.Arguments and props.Arguments.Color,
+			props.Arguments and props.Arguments.Transparency,
+			props.Arguments and props.Arguments.Size
+		)
 	end
 end
 
