@@ -333,22 +333,93 @@ do
 		return Face.Rectangle.new(Point.Rotated.new(cf), height, width)
 	end
 
-	function Face.Triangle.fitIn(face: TriangleFace, count: number, up: Vector3?, right: Vector3?): { RectangleFace }
+	-- https://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
+	function Face.Triangle.fitIn(
+		face: TriangleFace,
+		columnWidth: number,
+		up: Vector3?,
+		right: Vector3?
+	): { RectangleFace }
 		local normal = Face.Triangle.normal(face)
-		-- local center = Face.Triangle.center(face)
+		local center = Face.Triangle.center(face)
 		up = upFromNormal(normal, right)
 		assert(up, `bad up`)
 		right = rightFromNormal(normal)
 		assert(right, `bad right`)
+		local cf = CFrame.fromMatrix(center, right, up)
+		local maxRect = Face.Triangle.fitWithin(face, up, right)
+		local halfHeight = maxRect.Height / 2
+		local edges = Face.Triangle.edges(face)
+		local function getHit(pos: Vector3, offset: Vector3): Vector3?
+			local line = Line.Straight.new(Point.Vertex.new(pos, normal), Point.Vertex.new(pos + offset, normal))
+			for i, edge in edges do
+				local intersection = Line.Straight.intersection(line, edge)
+				if intersection then
+					return intersection
+				end
+			end
+			return nil
+		end
+		local function solveSlice(offsetX: number): NumberRange?
+			local origin = cf * CFrame.new(offsetX, 0, 0)
+			local topHit = getHit(origin.Position, up * halfHeight)
+			if not topHit then
+				return nil
+			end
+			local bottomHit = getHit(origin.Position, -up * halfHeight)
+			if not bottomHit then
+				return nil
+			end
 
-		local outer = Face.Triangle.fitWithin(face, up, right)
-		-- https://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
-		return {
-			outer
-		}
+			local topOffset = origin:PointToObjectSpace(topHit)
+			local bottomOffset = origin:PointToObjectSpace(bottomHit)
+			return NumberRange.new(bottomOffset.Y, topOffset.Y)
+		end
+
+		local out = {}
+		do
+			local count = math.floor(maxRect.Width / columnWidth)
+			local actualColumnWidth = maxRect.Width / count
+			local halfWidth = maxRect.Width / 2
+			for i = 0, count - 1 do
+				local xMin = i * actualColumnWidth - halfWidth
+				local yRange1 = solveSlice(xMin)
+				if not yRange1 then
+					continue
+				end
+				local xMax = (i + 1) * actualColumnWidth - halfWidth
+				local yRange2 = solveSlice(xMax)
+				if not yRange2 then
+					continue
+				end
+				local yMin = math.max(yRange1.Min, yRange2.Min)
+				local yMax = math.min(yRange1.Max, yRange2.Max)
+
+				local rHeight = yMax - yMin
+				local rWidth = xMax - xMin
+
+				table.insert(
+					out,
+					Face.Rectangle.new(
+						Point.Rotated.new(
+							CFrame.fromMatrix(
+								cf.Position + (xMin - halfWidth + rWidth / 2) * right + ((yMax - yMin) / 2) * up,
+								cf.XVector,
+								cf.YVector,
+								cf.ZVector
+							)
+						),
+						rHeight,
+						rWidth
+					)
+				)
+			end
+		end
+
+		return {}
 	end
 
-	function Face.Triangle.edges(face: TriangleFace): { Line }
+	function Face.Triangle.edges(face: TriangleFace): { Line.StraightLine }
 		return {
 			Line.Straight.new(face.P1, face.P2),
 			Line.Straight.new(face.P2, face.P3),
