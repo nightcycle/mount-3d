@@ -2,6 +2,7 @@
 -- Services
 -- Packages
 -- Modules
+local ENV = require(script.Parent.ENV)
 -- Types
 -- Constants
 local CONSTANTS = require(script.Parent.CONSTANTS)
@@ -10,6 +11,20 @@ local CONSTANTS = require(script.Parent.CONSTANTS)
 -- Private Functions
 -- Class
 local Util = {}
+
+function Util.lock(inst: Instance)
+	if ENV.DEBUG_PARTS_LOCKED then
+		return
+	end
+	if inst:IsA("BasePart") then
+		inst.Locked = true
+	end
+	for i, v in inst:GetDescendants() do
+		if v:IsA("BasePart") then
+			v.Locked = true
+		end
+	end
+end
 
 function Util.getInstance(className: string): Instance
 	return Instance.new(className)

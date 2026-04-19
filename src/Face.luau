@@ -44,6 +44,22 @@ local CONSTANTS = require(script.Parent.CONSTANTS)
 -- Variables
 -- References
 -- Private Functions
+function rightFromNormal(normal: Vector3): Vector3
+	if math.abs(Vector3.yAxis:Dot(normal)) == 1 then
+		return Vector3.zAxis:Cross(-normal).Unit
+	end
+	return Vector3.yAxis:Cross(-normal).Unit
+end
+function upFromNormal(normal: Vector3): Vector3
+	local right = rightFromNormal(normal)
+	local up = right:Cross(-normal)
+	if up:Dot(Vector3.yAxis) >= 0 then
+		return up.Unit
+	else
+		return -up.Unit
+	end
+end
+
 -- Class
 local Face = {}
 
@@ -98,7 +114,12 @@ do
 		end
 	end
 
-	function Face.Triangle.up(face: QuadFace): Vector3
+	function Face.Triangle.up(face: TriangleFace): Vector3
+		return upFromNormal(Face.Triangle.normal(face))
+	end
+
+	function Face.Triangle.right(face: TriangleFace): Vector3
+		return rightFromNormal(Face.Triangle.normal(face))
 	end
 
 	function Face.Triangle.center(face: TriangleFace): Vector3
@@ -163,6 +184,7 @@ end
 
 export type ConcaveNGonFace = {
 	Type: "ConcaveNGon",
+	Center: VertexPoint,
 	Triangles: { TriangleFace },
 	Vertices: { VertexPoint },
 }
@@ -170,17 +192,46 @@ do
 	Face.ConcaveNGon = {}
 
 	function Face.ConcaveNGon.new(vertices: { VertexPoint }): ConcaveNGonFace
+		local center: VertexPoint
+		do
+			local normal: Vector3
+			do
+				local sum = Vector3.zero
+				local count = 0
+				for i, v in vertices do
+					sum += v.Normal
+					count += 1
+				end
+				normal = sum / math.max(count, 1)
+			end
+			local position: Vector3
+			do
+				local sum = Vector3.zero
+				local count = 0
+				for i, v in vertices do
+					sum += v.Position
+					count += 1
+				end
+				position = sum / math.max(count, 1)
+			end
+			center = Point.Vertex.new(position, normal)
+		end
 		local face = {
 			Type = "ConcaveNGon" :: "ConcaveNGon",
 			Triangles = {},
+			Center = center,
 			Vertices = table.clone(vertices),
 		}
-		for i = 2, #vertices - 1 do
-			local firstV = vertices[1]
-			local currentV = vertices[i]
-			local nextV = vertices[i + 1]
-			table.insert(face.Triangles, Face.Triangle.new(currentV, nextV, firstV))
+
+		if #vertices > 1 then
+			for i = 1, #vertices do
+				local firstV = center
+				local currentV = vertices[i]
+				local nextV = vertices[i + 1] or vertices[1]
+				table.insert(face.Triangles, Face.Triangle.new(currentV, nextV, firstV))
+			end
 		end
+
 		table.freeze(face.Vertices)
 		table.freeze(face.Triangles)
 		table.freeze(face)
@@ -237,6 +288,11 @@ do
 	end
 
 	function Face.ConcaveNGon.up(face: ConcaveNGonFace): Vector3
+		return upFromNormal(Face.ConcaveNGon.normal(face))
+	end
+
+	function Face.ConcaveNGon.right(face: ConcaveNGonFace): Vector3
+		return rightFromNormal(Face.ConcaveNGon.normal(face))
 	end
 
 	function Face.ConcaveNGon.center(face: ConcaveNGonFace): Vector3
@@ -314,6 +370,11 @@ do
 	end
 
 	function Face.Quad.up(face: QuadFace): Vector3
+		return upFromNormal(Face.Quad.normal(face))
+	end
+
+	function Face.Quad.right(face: QuadFace): Vector3
+		return rightFromNormal(Face.Quad.normal(face))
 	end
 
 	function Face.Quad.center(face: QuadFace): Vector3
@@ -416,6 +477,11 @@ do
 	end
 
 	function Face.Rectangle.up(face: RectangleFace): Vector3
+		return upFromNormal(Face.Rectangle.normal(face))
+	end
+
+	function Face.Rectangle.right(face: RectangleFace): Vector3
+		return rightFromNormal(Face.Rectangle.normal(face))
 	end
 
 	function Face.Rectangle.center(face: RectangleFace): Vector3
@@ -555,6 +621,12 @@ do
 		return subModule.up(face)
 	end
 
+	function Face.Any.right(face: Face): Vector3
+		local subModule = Face[face.Type] :: any
+		assert(subModule.right, `missing right for type "{face.Type}"`)
+		return subModule.right(face)
+	end
+
 	function Face.Any.center(face: Face): Vector3
 		local subModule = Face[face.Type] :: any
 		assert(subModule.center, `missing center for type "{face.Type}"`)
@@ -652,9 +724,20 @@ do
 
 		if ENV.DEBUG_SHOW_NORMALS then
 			local normal = Face.Any.normal(face)
+			local up = Face.Any.up(face)
+			local right = Face.Any.right(face)
 			local center = Face.Any.center(face)
-			table.insert(out, Draw.point(center, Color3.new(0, 0, 1)))
-			table.insert(out, Draw.vector(center, normal * 3, Color3.new(0, 0, 1)))
+			table.insert(out, Draw.point(center, Color3.new(1, 1, 0)))
+			table.insert(out, Draw.vector(center, normal * 3, Color3.new(1, 1, 0)))
+			table.insert(out, Draw.vector(center, -normal * 3, Color3.new(0, 1, 0)))
+			table.insert(out, Draw.vector(center, up * 3, Color3.new(0, 0, 1)))
+			table.insert(out, Draw.vector(center, right * 3, Color3.new(1, 0, 0)))
+			local isLocked = ENV.DEBUG_PARTS_LOCKED
+			if isLocked then
+				for i, inst in out do
+					Util.lock(inst)
+				end
+			end
 		end
 		if ENV.DEBUG_SHOW_FACES then
 			local result = Face.Any.fill(face, {
@@ -666,11 +749,8 @@ do
 			end
 			local parts = {}
 			local cfs = {}
-			local isLocked = ENV.DEBUG_PARTS_LOCKED
 			for part, cf in result.Parts do
-				if isLocked then
-					part.Locked = true
-				end
+				Util.lock(part)
 				table.insert(parts, part)
 				table.insert(cfs, cf)
 			end
