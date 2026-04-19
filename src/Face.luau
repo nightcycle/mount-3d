@@ -378,7 +378,7 @@ do
 	end
 
 	function Face.Quad.center(face: QuadFace): Vector3
-		return (Face.Triangle.center(face.T1) + Face.Triangle.center(face.T2)) / 2
+		return face.T1.P2.Position:Lerp(face.T2.P2.Position, 0.5)
 	end
 
 	function Face.Quad.fill(face: QuadFace, fill: FillInfo, rng: Random?): FillResult
@@ -473,15 +473,15 @@ do
 	end
 
 	function Face.Rectangle.normal(face: RectangleFace): Vector3
-		return face.Center.Normal
+		return -face.Center.CFrame.LookVector
 	end
 
 	function Face.Rectangle.up(face: RectangleFace): Vector3
-		return upFromNormal(Face.Rectangle.normal(face))
+		return face.Center.CFrame.UpVector
 	end
 
 	function Face.Rectangle.right(face: RectangleFace): Vector3
-		return rightFromNormal(Face.Rectangle.normal(face))
+		return face.Center.CFrame.RightVector
 	end
 
 	function Face.Rectangle.center(face: RectangleFace): Vector3
