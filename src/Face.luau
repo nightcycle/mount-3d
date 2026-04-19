@@ -280,8 +280,8 @@ do
 	function Face.ConcaveNGon.normal(face: ConcaveNGonFace): Vector3
 		local sum = Vector3.zero
 		local count = 0
-		for i, v in face.Vertices do
-			sum += v.Normal
+		for i, v in face.Triangles do
+			sum += Face.Triangle.normal(v)
 			count += 1
 		end
 		return sum / math.max(count, 1)
