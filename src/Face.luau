@@ -750,7 +750,6 @@ do
 	end
 
 	function Face.Quad.tile(face: QuadFace, format: TileFormat, up: Vector3?, right: Vector3?): { Face }
-		print(`tile`)
 		local normal = Face.Quad.normal(face)
 		up = up or upFromNormal(normal, right)
 		assert(up, `bad up`)
