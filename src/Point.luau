@@ -43,7 +43,11 @@ do
 	function Point.Basic.debug(point: BasicPoint): { Instance }
 		local out: { Instance } = {}
 		if ENV.DEBUG_SHOW_POINTS then
-			table.insert(out, Draw.point(point.Position))
+			local newPoint = Draw.point(point.Position)
+			if ENV.DEBUG_PARTS_LOCKED then
+				newPoint.Locked = true
+			end
+			table.insert(out, newPoint)
 		end
 		return out
 	end
@@ -81,7 +85,11 @@ do
 	function Point.Vertex.debug(point: VertexPoint): { Instance }
 		local out: { Instance } = {}
 		if ENV.DEBUG_SHOW_POINTS then
-			table.insert(out, Draw.point(point.Position))
+			local newPoint = Draw.point(point.Position)
+			if ENV.DEBUG_PARTS_LOCKED then
+				newPoint.Locked = true
+			end
+			table.insert(out, newPoint)
 		end
 		return out
 	end
@@ -127,7 +135,13 @@ do
 	function Point.Rotated.debug(point: RotatedPoint): { Instance }
 		local out: { Instance } = {}
 		if ENV.DEBUG_SHOW_POINTS then
-			table.insert(out, Draw.cframe(CFrame.fromMatrix(point.Position, (-point.Normal):Cross(point.Up), point.Up)))
+			local newCF = Draw.cframe(CFrame.fromMatrix(point.Position, (-point.Normal):Cross(point.Up), point.Up))
+			if ENV.DEBUG_PARTS_LOCKED then
+				if newCF:IsA("BasePart") then
+					newCF.Locked = true
+				end
+			end
+			table.insert(out, newCF)
 		end
 		return out
 	end

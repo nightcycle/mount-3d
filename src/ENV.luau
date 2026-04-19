@@ -14,6 +14,7 @@ local DEFAULT_ENV = {
 	DEBUG_SHOW_POINTS = true,
 	DEBUG_SHOW_LINES = true,
 	DEBUG_SHOW_FACES = true,
+	DEBUG_PARTS_LOCKED = true,
 }
 local out: any = setmetatable({}, {
 	__index = function(_, readableKey: string): any?

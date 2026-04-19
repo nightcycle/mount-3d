@@ -581,7 +581,11 @@ do
 			end
 			local parts = {}
 			local cfs = {}
+			local isLocked = ENV.DEBUG_PARTS_LOCKED
 			for part, cf in result.Parts do
+				if isLocked then
+					part.Locked = true
+				end
 				table.insert(parts, part)
 				table.insert(cfs, cf)
 			end

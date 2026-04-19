@@ -59,7 +59,11 @@ do
 		Util.join(out, Point.Any.debug(line.P1))
 		Util.join(out, Point.Any.debug(line.P2))
 		if ENV.DEBUG_SHOW_LINES then
-			table.insert(out, Draw.vector(line.P1.Position, line.Offset))
+			local newLine = Draw.vector(line.P1.Position, line.Offset)
+			if ENV.DEBUG_PARTS_LOCKED then
+				newLine.Locked = true
+			end
+			table.insert(out, newLine)
 		end
 		return out
 	end

@@ -51,7 +51,6 @@ return function()
 			for i, v in instList do
 				v:Destroy()
 			end
-
 			local face = Package.Face.Quad.new(
 				Package.Point.Vertex.new(p1:get().Position, p1:get().UpVector),
 				Package.Point.Basic.new(p2:get()),
@@ -61,7 +60,7 @@ return function()
 			local orig = Package.ENV.DEBUG_SHOW_POINTS
 			Package.ENV.DEBUG_SHOW_POINTS = false
 			instList = Package.Face.Any.debug(face)
-			Package.ENV.DEBUG_SHOW_POINTS = true
+			Package.ENV.DEBUG_SHOW_POINTS = orig
 		end
 	end)
 
