@@ -61,13 +61,13 @@ export type TriangleFace = {
 do
 	Face.Triangle = {}
 
-	function Face.Triangle.new(p1: VertexPoint, p2: VertexPoint, p3: VertexPoint, normal: Vector3): TriangleFace
+	function Face.Triangle.new(p1: VertexPoint, p2: VertexPoint, p3: VertexPoint): TriangleFace
 		local face = {
 			Type = "Triangle" :: "Triangle",
 			P1 = p1,
 			P2 = p2,
 			P3 = p3,
-			Normal = normal,
+			Normal = (p1.Normal + p2.Normal + p3.Normal) / 3,
 		}
 		table.freeze(face)
 		return face
@@ -172,7 +172,7 @@ do
 			local firstV = vertices[1]
 			local currentV = vertices[i]
 			local nextV = vertices[i + 1]
-			table.insert(face.Triangles, Face.Triangle.new(currentV, nextV, firstV, currentV.Normal))
+			table.insert(face.Triangles, Face.Triangle.new(currentV, nextV, firstV))
 		end
 		table.freeze(face.Vertices)
 		table.freeze(face.Triangles)
@@ -267,14 +267,12 @@ do
 			T1 = Face.Triangle.new(
 				q1,
 				Point.Vertex.new(q2.Position, q1.Normal),
-				Point.Vertex.new(q4.Position, q1.Normal),
-				q1.Normal
+				Point.Vertex.new(q4.Position, q1.Normal)
 			),
 			T2 = Face.Triangle.new(
 				q3,
 				Point.Vertex.new(q4.Position, q3.Normal),
-				Point.Vertex.new(q2.Position, q3.Normal),
-				q3.Normal
+				Point.Vertex.new(q2.Position, q3.Normal)
 			),
 		}
 		table.freeze(face)
@@ -354,31 +352,19 @@ end
 
 export type RectangleFace = {
 	Type: "Rectangle",
-	Center: BasicPoint,
+	Center: RotatedPoint,
 	Height: number,
 	Width: number,
-	Normal: Vector3,
-	Up: Vector3,
-	Right: Vector3,
 }
 do
 	Face.Rectangle = {}
 
-	function Face.Rectangle.new(
-		center: BasicPoint,
-		height: number,
-		width: number,
-		normal: Vector3,
-		up: Vector3
-	): RectangleFace
+	function Face.Rectangle.new(center: RotatedPoint, height: number, width: number): RectangleFace
 		local face = {
 			Type = "Rectangle" :: "Rectangle",
 			Center = center,
 			Height = height,
 			Width = width,
-			Normal = normal,
-			Up = up,
-			Right = up:Cross(-normal),
 		}
 		table.freeze(face)
 		return face
@@ -392,9 +378,9 @@ do
 				Instances = { part },
 				Parts = {
 					[part] = CFrame.fromMatrix(
-						face.Center.Position - face.Normal * part.Size.Z / 2,
-						face.Right,
-						face.Up
+						face.Center.Position - face.Center.Normal * part.Size.Z / 2,
+						face.Center.Up:Cross(-face.Center.Normal),
+						face.Center.Up
 					),
 				},
 			}
@@ -407,13 +393,7 @@ do
 		if a.Type ~= b.Type then
 			return false
 		end
-		if not a.Normal:FuzzyEq(b.Normal, CONSTANTS.FUZZY_EQ.EPSILON) then
-			return false
-		end
-		if not a.Up:FuzzyEq(b.Up, CONSTANTS.FUZZY_EQ.EPSILON) then
-			return false
-		end
-		if not Util.positionEq(a.Center.Position, b.Center.Position) then
+		if not Point.Any.eq(a.Center, b.Center) then
 			return false
 		end
 		if math.abs(a.Height - b.Height) > CONSTANTS.FUZZY_EQ.LENGTH then
@@ -431,23 +411,23 @@ do
 
 	function Face.Rectangle.isWithin(face: RectangleFace, point: Vector3): boolean
 		local offset = point - face.Center.Position
-		local projUp = math.abs(offset:Dot(face.Up))
-		local projRight = math.abs(offset:Dot(face.Right))
-		local projNormal = math.abs(offset:Dot(face.Normal))
+		local projUp = math.abs(offset:Dot(face.Center.Up))
+		local projRight = math.abs(offset:Dot(face.Center.Up:Cross(-face.Center.Normal)))
+		local projNormal = math.abs(offset:Dot(face.Center.Normal))
 		return projUp <= face.Height / 2 + CONSTANTS.FUZZY_EQ.LENGTH
 			and projRight <= face.Width / 2 + CONSTANTS.FUZZY_EQ.LENGTH
 			and projNormal < CONSTANTS.FUZZY_EQ.LENGTH
 	end
 
 	function Face.Rectangle.getPoints(face: RectangleFace): { RotatedPoint }
-		local widthVec = face.Right * face.Width
-		local heightVec = face.Up * face.Height
+		local widthVec = (face.Center.Up:Cross(-face.Center.Normal)) * face.Width
+		local heightVec = face.Center.Up * face.Height
 		local origin = face.Center.Position - widthVec / 2 - heightVec / 2
 		return {
-			Point.Rotated.new(origin, face.Normal, face.Up),
-			Point.Rotated.new(origin + widthVec, face.Normal, face.Up),
-			Point.Rotated.new(origin + widthVec + heightVec, face.Normal, face.Up),
-			Point.Rotated.new(origin + heightVec, face.Normal, face.Up),
+			Point.Rotated.new(origin, face.Center.Normal, face.Center.Up),
+			Point.Rotated.new(origin + widthVec, face.Center.Normal, face.Center.Up),
+			Point.Rotated.new(origin + widthVec + heightVec, face.Center.Normal, face.Center.Up),
+			Point.Rotated.new(origin + heightVec, face.Center.Normal, face.Center.Up),
 		}
 	end
 

@@ -38,10 +38,14 @@ return function()
 		end
 		local widthState = Controllers.Osiris.SavedState(`{script.Name}/Width`, 3)
 		local heightState = Controllers.Osiris.SavedState(`{script.Name}/Height`, 3)
+		local windowSize = Controllers.Osiris.SavedState(`{script.Name}/ControlSize`, Vector2.new(150, 100))
 
 		Osiris.Widget.Window({
 			Arguments = {
 				Title = "Controls",
+			},
+			States = {
+				size = windowSize,
 			},
 		}, function(_)
 			if

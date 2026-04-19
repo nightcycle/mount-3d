@@ -19,12 +19,16 @@ return function(frame)
 	local cleanUp = Osiris:Connect(function(): ()
 		local pointNumber = Controllers.Osiris.SavedState(`{script.Name}/PointNumber`, 8)
 		local height = Controllers.Osiris.SavedState(`{script.Name}/Height`, 0)
+		local windowSize = Controllers.Osiris.SavedState(`{script.Name}/ControlSize`, Vector2.new(150, 100))
 
 		local didChange = false
 		Osiris.Widget.Window({
 			Arguments = {
 				Title = "Controls",
 			},
+			States = {
+				size = windowSize,
+			}
 		}, function(_)
 			if
 				Osiris.Widget
