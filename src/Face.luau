@@ -701,9 +701,9 @@ do
 		return subModule.vertices(face)
 	end
 
-	function Face.Any.getSharedEdges(a: Face, b: Face): { Line }
-		if a.Type == b.Type and Face[a.Type].getSharedEdges then
-			return Face[a.Type].getSharedEdges(a, b)
+	function Face.Any.sharedEdges(a: Face, b: Face): { Line }
+		if a.Type == b.Type and Face[a.Type].sharedEdges then
+			return Face[a.Type].sharedEdges(a, b)
 		end
 		local aEdges = Face.Any.edges(a)
 		local bEdges = Face.Any.edges(b)
@@ -718,7 +718,7 @@ do
 		end
 		return out
 	end
-	function Face.Any.getSharedPoints(
+	function Face.Any.sharedVertices(
 		a: Face,
 		b: Face,
 		includeNormals: boolean?
@@ -726,8 +726,8 @@ do
 		A: Point,
 		B: Point,
 	} }
-		if a.Type == b.Type and Face[a.Type].getSharedPoints then
-			return Face[a.Type].getSharedPoints(a, b, includeNormals)
+		if a.Type == b.Type and Face[a.Type].sharedVertices then
+			return Face[a.Type].sharedVertices(a, b, includeNormals)
 		end
 		local aPoints = Face.Any.vertices(a)
 		local bPoints = Face.Any.vertices(b)
