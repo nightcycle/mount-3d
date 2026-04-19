@@ -53,7 +53,10 @@ return function()
 
 			do
 				Package.ENV.DEBUG_SHOW_NORMALS = false
-				for i, rect in Package.Face.Triangle.fitIn(face, 40) do
+				local n = Package.Face.Triangle.normal(face).Unit
+				local up = Vector3.zAxis:Cross(-n).Unit
+				local r = up:Cross(n).Unit
+				for i, rect in Package.Face.Triangle.fitIn(face, 40, up, r) do
 					for j, inst in Package.Face.Any.debug(rect) do
 						table.insert(instList, inst)
 					end

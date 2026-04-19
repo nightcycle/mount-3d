@@ -342,9 +342,9 @@ do
 	): { RectangleFace }
 		local normal = Face.Triangle.normal(face)
 		local center = Face.Triangle.center(face)
-		up = upFromNormal(normal, right)
+		up = up or upFromNormal(normal, right)
 		assert(up, `bad up`)
-		right = rightFromNormal(normal)
+		right = right or rightFromNormal(normal)
 		assert(right, `bad right`)
 		local maxRect = Face.Triangle.fitWithin(face, up, right)
 		local halfHeight = maxRect.Height / 2
