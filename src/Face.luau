@@ -26,17 +26,12 @@ export type FillInfo =
 		Thickness: number?,
 	}
 	| {
-		Type: "Splatter",
-		Count: number,
-		Decoration: DecorationInfo,
-		Constructor: DecorationConstructor,
-	}
-	| {
 		Type: "Stripes",
 		Count: number,
 		PerLine: number,
 		Decoration: DecorationInfo,
 		Constructor: DecorationConstructor,
+		Direction: Enum.FillDirection,
 	}
 
 export type FillResult = {
@@ -101,6 +96,9 @@ do
 		else
 			return -fromPos
 		end
+	end
+
+	function Face.Triangle.up(face: QuadFace): Vector3
 	end
 
 	function Face.Triangle.center(face: TriangleFace): Vector3
@@ -238,6 +236,9 @@ do
 		return sum / math.max(count, 1)
 	end
 
+	function Face.ConcaveNGon.up(face: ConcaveNGonFace): Vector3
+	end
+
 	function Face.ConcaveNGon.center(face: ConcaveNGonFace): Vector3
 		local sum = Vector3.zero
 		local count = 0
@@ -310,6 +311,9 @@ do
 
 	function Face.Quad.normal(face: QuadFace): Vector3
 		return (Face.Triangle.normal(face.T1) + Face.Triangle.normal(face.T2)) / 2
+	end
+
+	function Face.Quad.up(face: QuadFace): Vector3
 	end
 
 	function Face.Quad.center(face: QuadFace): Vector3
@@ -409,6 +413,9 @@ do
 
 	function Face.Rectangle.normal(face: RectangleFace): Vector3
 		return face.Center.Normal
+	end
+
+	function Face.Rectangle.up(face: RectangleFace): Vector3
 	end
 
 	function Face.Rectangle.center(face: RectangleFace): Vector3
@@ -542,6 +549,12 @@ do
 		return subModule.normal(face)
 	end
 
+	function Face.Any.up(face: Face): Vector3
+		local subModule = Face[face.Type] :: any
+		assert(subModule.up, `missing up for type "{face.Type}"`)
+		return subModule.up(face)
+	end
+
 	function Face.Any.center(face: Face): Vector3
 		local subModule = Face[face.Type] :: any
 		assert(subModule.center, `missing center for type "{face.Type}"`)
@@ -640,7 +653,7 @@ do
 		if ENV.DEBUG_SHOW_NORMALS then
 			local normal = Face.Any.normal(face)
 			local center = Face.Any.center(face)
-			table.insert(out, Draw.point(center, Color3.new(0, 1, 0)))
+			table.insert(out, Draw.point(center, Color3.new(0, 0, 1)))
 			table.insert(out, Draw.vector(center, normal * 3, Color3.new(0, 0, 1)))
 		end
 		if ENV.DEBUG_SHOW_FACES then
